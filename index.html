@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Membership Card</title>
+
+<!-- LINE LIFF SDK -->
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+<style>
+/* ─── CONFIG: แก้ค่าด้านล่างนี้ก่อนใช้งาน ─── */
+:root {
+  --liff-id:       "YOUR_LIFF_ID";          /* แก้ตรงนี้ */
+  --apps-url:      "YOUR_APPS_SCRIPT_URL";  /* แก้ตรงนี้ */
+
+  --green:         #06C755;
+  --green-dark:    #04A244;
+  --green-deep:    #005b2f;
+  --bronze:        #CD7F32;
+  --silver:        #A0A0A0;
+  --gold:          #D4AF37;
+  --platinum:      #A0C0D0;
+
+  --bg:            #F4F4F4;
+  --card:          #FFFFFF;
+  --text:          #1A1A1A;
+  --text-sub:      #666666;
+  --text-hint:     #999999;
+  --border:        rgba(0,0,0,0.08);
+  --radius:        14px;
+  --radius-sm:     8px;
+  --shadow:        0 2px 12px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); font-family: -apple-system, 'Noto Sans Thai', sans-serif; font-size: 15px; color: var(--text); }
+
+/* ─── LAYOUT ─── */
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+.screen { display: none; flex-direction: column; min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* ─── TOPBAR ─── */
+.topbar {
+  background: var(--green);
+  color: #fff;
+  padding: 14px 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-title { flex: 1; font-size: 16px; font-weight: 600; text-align: center; }
+.topbar-back { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; line-height: 1; width: 28px; }
+.topbar-right { width: 28px; }
+
+/* ─── HERO CARD (Member) ─── */
+.hero {
+  background: linear-gradient(160deg, var(--green-deep) 0%, var(--green-dark) 100%);
+  padding: 24px 20px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #fff;
+}
+.hero-avatar {
+  width: 64px; height: 64px; border-radius: 50%;
+  border: 2.5px solid rgba(255,255,255,0.6);
+  background: rgba(255,255,255,0.2);
+  overflow: hidden;
+  margin-bottom: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.hero-name { font-size: 18px; font-weight: 600; }
+.hero-id   { font-size: 12px; color: rgba(255,255,255,0.7); }
+.tier-badge {
+  margin-top: 8px;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.4);
+  border-radius: 20px;
+  padding: 5px 16px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600;
+}
+.tier-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+/* ─── POINTS CARD ─── */
+.points-card {
+  margin: -18px 16px 0;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  position: relative; z-index: 2;
+}
+.points-row { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 12px; }
+.points-main { font-size: 28px; font-weight: 700; color: var(--text); }
+.points-unit { font-size: 14px; color: var(--text-sub); margin-left: 3px; }
+.points-next { font-size: 12px; color: var(--text-hint); text-align: right; }
+.points-next strong { color: var(--green-dark); }
+.progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-hint); margin-bottom: 5px; }
+.progress-bar { height: 7px; background: #EBEBEB; border-radius: 4px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--green); border-radius: 4px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }
+
+/* ─── BODY / SECTION ─── */
+.body { flex: 1; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.section-label { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 8px; letter-spacing: 0.02em; }
+
+/* ─── COUPON ITEMS ─── */
+.coupon-list { display: flex; flex-direction: column; gap: 8px; }
+.coupon-item {
+  background: var(--card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.coupon-icon {
+  width: 42px; height: 42px; border-radius: var(--radius-sm);
+  background: #E8F8EE; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.coupon-info { flex: 1; }
+.coupon-title { font-size: 14px; font-weight: 600; }
+.coupon-exp { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+.coupon-cost { font-size: 11px; color: var(--green-dark); margin-top: 2px; font-weight: 600; }
+.coupon-btn {
+  font-size: 12px; font-weight: 600; color: var(--green-dark);
+  background: #E8F8EE; border: none; border-radius: 7px;
+  padding: 7px 13px; cursor: pointer; white-space: nowrap;
+  transition: background 0.15s;
+}
+.coupon-btn:active { background: #C5EDD7; }
+.coupon-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* ─── HISTORY ─── */
+.history-list { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--border); overflow: hidden; }
+.history-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.history-item:last-child { border-bottom: none; }
+.hist-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.hist-text { flex: 1; font-size: 13px; color: var(--text-sub); }
+.hist-right { text-align: right; }
+.hist-pts { font-size: 14px; font-weight: 700; }
+.hist-pts.add { color: var(--green-dark); }
+.hist-pts.use { color: #E24B4A; }
+.hist-date { font-size: 11px; color: var(--text-hint); margin-top: 2px; }
+
+/* ─── NAV BAR ─── */
+.navbar {
+  display: flex; border-top: 1px solid var(--border);
+  background: var(--card);
+  position: sticky; bottom: 0; z-index: 10;
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 8px 0 calc(8px + env(safe-area-inset-bottom));
+  cursor: pointer; gap: 3px; border: none; background: none;
+}
+.nav-icon { font-size: 20px; line-height: 1; }
+.nav-label { font-size: 10px; color: var(--text-hint); font-weight: 500; }
+.nav-label.active { color: var(--green); }
+.nav-bar { width: 28px; height: 2.5px; background: var(--green); border-radius: 2px; margin-top: 2px; visibility: hidden; }
+.nav-bar.active { visibility: visible; }
+
+/* ─── FORM (Register) ─── */
+.form-wrap { padding: 20px 16px; display: flex; flex-direction: column; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+.form-label span { color: #E24B4A; margin-left: 2px; }
+.form-input {
+  height: 48px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  padding: 0 14px; font-size: 15px; color: var(--text);
+  background: var(--card); outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+}
+.form-input:focus { border-color: var(--green); }
+.form-input.error { border-color: #E24B4A; }
+.form-error { font-size: 12px; color: #E24B4A; display: none; }
+.form-error.show { display: block; }
+.form-hint { font-size: 12px; color: var(--text-hint); }
+.form-note {
+  background: #E8F8EE; border-radius: var(--radius-sm);
+  padding: 12px 14px; font-size: 13px; color: #085041; line-height: 1.6;
+}
+
+/* ─── BUTTONS ─── */
+.btn-primary {
+  width: 100%; height: 50px; border-radius: var(--radius-sm);
+  background: var(--green); color: #fff; border: none;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:active { background: var(--green-dark); transform: scale(0.98); }
+.btn-primary:disabled { background: #AAAAAA; cursor: not-allowed; transform: none; }
+
+/* ─── LOADING ─── */
+.loading-screen {
+  position: fixed; inset: 0; background: #fff;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  z-index: 100;
+}
+.spinner {
+  width: 40px; height: 40px; border: 3px solid #E0E0E0;
+  border-top-color: var(--green); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--text-sub); }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: #1A1A1A; color: #fff; padding: 10px 20px;
+  border-radius: 24px; font-size: 13px; font-weight: 500;
+  opacity: 0; transition: opacity 0.25s, transform 0.25s;
+  pointer-events: none; white-space: nowrap; z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ─── EMPTY STATE ─── */
+.empty { text-align: center; padding: 32px 16px; color: var(--text-hint); font-size: 14px; }
+.empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+/* ─── SUCCESS SCREEN ─── */
+.success-wrap {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  flex: 1; padding: 32px 24px; text-align: center; gap: 12px;
+}
+.success-icon { font-size: 64px; margin-bottom: 8px; }
+.success-title { font-size: 22px; font-weight: 700; }
+.success-sub { font-size: 15px; color: var(--text-sub); line-height: 1.6; }
+
+/* ─── TIER COLORS ─── */
+.tier-bronze .tier-dot { background: var(--bronze); }
+.tier-silver .tier-dot { background: var(--silver); }
+.tier-gold   .tier-dot { background: var(--gold); }
+.tier-platinum .tier-dot { background: var(--platinum); }
+</style>
+</head>
+<body>
+
+<!-- ─── LOADING ─── -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner"></div>
+  <div class="loading-text">กำลังโหลด...</div>
+</div>
+
+<!-- ─── TOAST ─── -->
+<div class="toast" id="toast"></div>
+
+<!-- ─── APP ─── -->
+<div id="app">
+
+  <!-- ════════════════════════════════════
+       SCREEN: MEMBER CARD (หน้าหลัก)
+  ════════════════════════════════════ -->
+  <div class="screen active" id="screenCard">
+    <div class="topbar">
+      <div class="topbar-back"></div>
+      <div class="topbar-title">บัตรสมาชิก</div>
+      <div class="topbar-right"></div>
+    </div>
+
+    <div class="hero" id="heroSection">
+      <div class="hero-avatar" id="heroAvatar">👤</div>
+      <div class="hero-name" id="heroName">—</div>
+      <div class="hero-id" id="heroMemberId">Member #—</div>
+      <div class="tier-badge tier-bronze" id="tierBadge">
+        <div class="tier-dot"></div>
+        <span id="tierLabel">Bronze</span>
+      </div>
+    </div>
+
+    <div class="points-card">
+      <div class="points-row">
+        <div>
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:2px">แต้มสะสม</div>
+          <div>
+            <span class="points-main" id="pointsValue">0</span>
+            <span class="points-unit">แต้ม</span>
+          </div>
+        </div>
+        <div class="points-next" id="pointsNext">
+          <div>อีก <strong id="pointsNeeded">—</strong> แต้ม</div>
+          <div>ขึ้น <span id="nextTierName">—</span></div>
+        </div>
+      </div>
+      <div class="progress-labels">
+        <span id="progLabelCurrent">—</span>
+        <span id="progLabelNext">—</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="body">
+      <div>
+        <div class="section-label">คูปองของฉัน</div>
+        <div class="coupon-list" id="couponList">
+          <div class="empty"><div class="empty-icon">🎟</div>ยังไม่มีคูปอง</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">ประวัติแต้ม</div>
+        <div class="history-list" id="historyList">
+          <div class="empty"><div class="empty-icon">📋</div>ยังไม่มีรายการ</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="navbar">
+      <button class="nav-item" onclick="showTab('card')">
+        <div class="nav-icon">🏠</div>
+        <div class="nav-label active" id="navLabelCard">หน้าหลัก</div>
+        <div class="nav-bar active" id="navBarCard"></div>
+      </button>
+      <button class="nav-item" onclick="showTab('coupons')">
+        <div class="nav-icon">🎟</div>
+        <div class="nav-label" id="navLabelCoupons">คูปอง</div>
+        <div class="nav-bar" id="navBarCoupons"></div>
+      </button>
+      <button class="nav-item" onclick="showTab('history')">
+        <div class="nav-icon">📋</div>
+        <div class="nav-label" id="navLabelHistory">ประวัติ</div>
+        <div class="nav-bar" id="navBarHistory"></div>
+      </button>
+      <button class="nav-item" onclick="showTab('profile')">
+        <div class="nav-icon">👤</div>
+        <div class="nav-label" id="navLabelProfile">โปรไฟล์</div>
+        <div class="nav-bar" id="navBarProfile"></div>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN: REGISTER
+  ════════════════════════════════════ -->
+  <div class="screen" id="screenRegister">
+    <div class="topbar">
+      <div class="topbar-back"></div>
+      <div class="topbar-title">สมัครสมาชิก</div>
+      <div class="topbar-right"></div>
+    </div>
+
+    <div class="form-wrap">
+      <div class="form-note">
+        🎉 ยินดีต้อนรับ! สมัครสมาชิกฟรี รับแต้มสะสม คูปองส่วนลด และสิทธิพิเศษเฉพาะสมาชิก
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">ชื่อ-นามสกุล <span>*</span></label>
+        <input class="form-input" type="text" id="inputName" placeholder="กรอกชื่อ-นามสกุล" autocomplete="name">
+        <div class="form-error" id="errName">กรุณากรอกชื่อ-นามสกุล</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">เบอร์โทรศัพท์ <span>*</span></label>
+        <input class="form-input" type="tel" id="inputPhone" placeholder="0812345678" maxlength="10" inputmode="numeric">
+        <div class="form-error" id="errPhone">กรุณากรอกเบอร์ 10 หลักให้ถูกต้อง</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">วันเกิด <span style="color:var(--text-hint);font-weight:400">(ไม่บังคับ)</span></label>
+        <input class="form-input" type="date" id="inputBirthday">
+        <div class="form-hint">รับสิทธิ์พิเศษวันเกิด</div>
+      </div>
+
+      <button class="btn-primary" id="btnRegister" onclick="submitRegister()">สมัครสมาชิก</button>
+
+      <div style="font-size:12px;color:var(--text-hint);text-align:center;line-height:1.6">
+        การสมัครถือว่าคุณยอมรับ<br>เงื่อนไขการใช้งานและนโยบายความเป็นส่วนตัว
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       SCREEN: SUCCESS
+  ════════════════════════════════════ -->
+  <div class="screen" id="screenSuccess">
+    <div class="topbar">
+      <div class="topbar-back"></div>
+      <div class="topbar-title">สมัครสำเร็จ</div>
+      <div class="topbar-right"></div>
+    </div>
+    <div class="success-wrap">
+      <div class="success-icon">🎉</div>
+      <div class="success-title">ยินดีต้อนรับสมาชิก!</div>
+      <div class="success-sub">คุณได้รับระดับ <strong>Bronze Member</strong><br>สะสมแต้มและรับสิทธิพิเศษได้เลย</div>
+      <button class="btn-primary" style="margin-top:16px" onclick="goToCard()">ดูบัตรสมาชิก</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════
+   ⚙️  CONFIG — แก้ค่าทั้ง 3 บรรทัดด้านล่างก่อนใช้งาน
+════════════════════════════════════════════════════════ */
+const LIFF_ID        = "YOUR_LIFF_ID";           // จาก LINE Developers Console
+const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_URL";  // จาก Google Apps Script (deploy as web app)
+const SHEET_NAME      = "Members";               // ชื่อ Sheet tab
+
+/* ════════════════════════════════════════════════════════
+   TIER CONFIG
+════════════════════════════════════════════════════════ */
+const TIERS = [
+  { name:"Bronze",   min:0,    max:999,  color:"var(--bronze)"  },
+  { name:"Silver",   min:1000, max:2999, color:"var(--silver)"  },
+  { name:"Gold",     min:3000, max:4999, color:"var(--gold)"    },
+  { name:"Platinum", min:5000, max:Infinity, color:"var(--platinum)" },
+];
+
+/* ════════════════════════════════════════════════════════
+   COUPON CONFIG (ปรับได้)
+════════════════════════════════════════════════════════ */
+const COUPONS = [
+  { id:"C01", icon:"🎟", title:"ส่วนลด 50 บาท", cost:200,  exp:"31 มี.ค. 68", minTier:"Bronze"   },
+  { id:"C02", icon:"☕", title:"ฟรี 1 เครื่องดื่ม", cost:500, exp:"30 เม.ย. 68", minTier:"Bronze" },
+  { id:"C03", icon:"🎁", title:"ส่วนลด 200 บาท",  cost:800,  exp:"30 เม.ย. 68", minTier:"Silver"  },
+  { id:"C04", icon:"⭐", title:"ของรางวัล Gold",    cost:1500, exp:"31 พ.ค. 68", minTier:"Gold"    },
+];
+
+/* ════════════════════════════════════════════════════════
+   STATE
+════════════════════════════════════════════════════════ */
+let lineProfile = null;
+let memberData  = null;
+
+/* ════════════════════════════════════════════════════════
+   INIT
+════════════════════════════════════════════════════════ */
+async function init() {
+  try {
+    await liff.init({ liffId: LIFF_ID });
+
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+
+    lineProfile = await liff.getProfile();
+
+    // Pre-fill name from LINE profile
+    document.getElementById("inputName").value = lineProfile.displayName || "";
+
+    // Check if already member
+    const member = await apiCall("getMember", { userId: lineProfile.userId });
+
+    if (member && member.memberId) {
+      memberData = member;
+      renderMemberCard(member);
+      showScreen("screenCard");
+    } else {
+      showScreen("screenRegister");
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToast("เกิดข้อผิดพลาด กรุณาลองใหม่");
+    showScreen("screenRegister");
+  } finally {
+    hide("loadingScreen");
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   API — Google Apps Script
+════════════════════════════════════════════════════════ */
+async function apiCall(action, params = {}) {
+  const url = new URL(APPS_SCRIPT_URL);
+  url.searchParams.set("action", action);
+  Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("API error " + res.status);
+  return res.json();
+}
+
+async function apiPost(action, body = {}) {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action, ...body }),
+  });
+  if (!res.ok) throw new Error("API error " + res.status);
+  return res.json();
+}
+
+/* ════════════════════════════════════════════════════════
+   RENDER MEMBER CARD
+════════════════════════════════════════════════════════ */
+function renderMemberCard(m) {
+  // Avatar
+  const avatarEl = document.getElementById("heroAvatar");
+  if (lineProfile?.pictureUrl) {
+    avatarEl.innerHTML = `<img src="${lineProfile.pictureUrl}" alt="avatar">`;
+  }
+
+  document.getElementById("heroName").textContent     = m.name || lineProfile?.displayName || "—";
+  document.getElementById("heroMemberId").textContent = "Member #" + (m.memberId || "—");
+
+  const points = parseInt(m.points) || 0;
+  document.getElementById("pointsValue").textContent  = points.toLocaleString();
+
+  // Tier
+  const tier     = getTier(points);
+  const nextTier = getNextTier(points);
+  const badge    = document.getElementById("tierBadge");
+  badge.className = `tier-badge tier-${tier.name.toLowerCase()}`;
+  badge.querySelector(".tier-dot").style.background = tier.color;
+  document.getElementById("tierLabel").textContent   = tier.name + " Member";
+
+  if (nextTier) {
+    const needed = nextTier.min - points;
+    document.getElementById("pointsNeeded").textContent  = needed.toLocaleString();
+    document.getElementById("nextTierName").textContent   = nextTier.name;
+    document.getElementById("progLabelCurrent").textContent = tier.name + " " + tier.min.toLocaleString();
+    document.getElementById("progLabelNext").textContent    = nextTier.name + " " + nextTier.min.toLocaleString();
+    const pct = Math.min(100, Math.round(((points - tier.min) / (nextTier.min - tier.min)) * 100));
+    document.getElementById("progressFill").style.width = pct + "%";
+    document.getElementById("pointsNext").style.display = "";
+  } else {
+    document.getElementById("pointsNext").style.display = "none";
+    document.getElementById("progLabelCurrent").textContent = "Platinum";
+    document.getElementById("progLabelNext").textContent     = "สูงสุดแล้ว!";
+    document.getElementById("progressFill").style.width = "100%";
+  }
+
+  renderCoupons(tier, points, m.usedCoupons || "");
+  renderHistory(m.history || "");
+}
+
+/* ─── Coupons ─── */
+function renderCoupons(tier, points, usedStr) {
+  const used = usedStr ? usedStr.split(",") : [];
+  const tierIndex = TIERS.findIndex(t => t.name === tier.name);
+
+  const html = COUPONS.map(c => {
+    const minIdx   = TIERS.findIndex(t => t.name === c.minTier);
+    const locked   = tierIndex < minIdx;
+    const canAfford= points >= c.cost;
+    const isUsed   = used.includes(c.id);
+
+    return `<div class="coupon-item">
+      <div class="coupon-icon">${c.icon}</div>
+      <div class="coupon-info">
+        <div class="coupon-title">${c.title}</div>
+        <div class="coupon-cost">ใช้ ${c.cost.toLocaleString()} แต้ม</div>
+        <div class="coupon-exp">หมดอายุ ${c.exp}${locked ? ` · ต้องการ ${c.minTier}` : ""}</div>
+      </div>
+      <button class="coupon-btn" onclick="redeemCoupon('${c.id}',${c.cost},'${c.title}')"
+        ${(isUsed || locked || !canAfford) ? "disabled" : ""}>
+        ${isUsed ? "ใช้แล้ว" : locked ? "🔒" : !canAfford ? "แต้มไม่พอ" : "แลก"}
+      </button>
+    </div>`;
+  }).join("");
+
+  document.getElementById("couponList").innerHTML = html;
+}
+
+/* ─── History ─── */
+function renderHistory(historyStr) {
+  if (!historyStr) {
+    document.getElementById("historyList").innerHTML =
+      `<div class="empty"><div class="empty-icon">📋</div>ยังไม่มีรายการ</div>`;
+    return;
+  }
+
+  // Format: "type|desc|pts|date;type|desc|pts|date"
+  const items = historyStr.split(";").filter(Boolean).reverse().slice(0, 10);
+  const html = items.map(item => {
+    const [type, desc, pts, date] = item.split("|");
+    const isAdd = type === "add";
+    return `<div class="history-item">
+      <div class="hist-dot" style="background:${isAdd ? "var(--green)" : "#E24B4A"}"></div>
+      <div class="hist-text">${desc}</div>
+      <div class="hist-right">
+        <div class="hist-pts ${isAdd ? "add" : "use"}">${isAdd ? "+" : ""}${parseInt(pts).toLocaleString()}</div>
+        <div class="hist-date">${date}</div>
+      </div>
+    </div>`;
+  }).join("");
+
+  document.getElementById("historyList").innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════════════
+   REGISTER
+════════════════════════════════════════════════════════ */
+async function submitRegister() {
+  const name     = document.getElementById("inputName").value.trim();
+  const phone    = document.getElementById("inputPhone").value.trim();
+  const birthday = document.getElementById("inputBirthday").value;
+
+  let valid = true;
+  if (!name) {
+    showErr("errName"); document.getElementById("inputName").classList.add("error"); valid = false;
+  } else { hideErr("errName"); document.getElementById("inputName").classList.remove("error"); }
+
+  if (!phone || !/^0[0-9]{9}$/.test(phone)) {
+    showErr("errPhone"); document.getElementById("inputPhone").classList.add("error"); valid = false;
+  } else { hideErr("errPhone"); document.getElementById("inputPhone").classList.remove("error"); }
+
+  if (!valid) return;
+
+  const btn = document.getElementById("btnRegister");
+  btn.disabled = true;
+  btn.textContent = "กำลังสมัคร...";
+
+  try {
+    const today    = new Date().toLocaleDateString("th-TH", { day:"2-digit", month:"2-digit", year:"2-digit" });
+    const memberId = "M" + Date.now().toString().slice(-6);
+
+    const result = await apiPost("register", {
+      userId:    lineProfile.userId,
+      name,
+      phone,
+      birthday,
+      memberId,
+      joinDate:  today,
+      tier:      "Bronze",
+      points:    0,
+    });
+
+    if (result.success) {
+      memberData = { memberId, name, phone, points: 0, tier: "Bronze", history: "" };
+      renderMemberCard(memberData);
+      showScreen("screenSuccess");
+    } else {
+      showToast(result.message || "เกิดข้อผิดพลาด กรุณาลองใหม่");
+    }
+  } catch (e) {
+    showToast("เชื่อมต่อไม่ได้ กรุณาลองใหม่");
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "สมัครสมาชิก";
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   REDEEM COUPON
+════════════════════════════════════════════════════════ */
+async function redeemCoupon(couponId, cost, title) {
+  if (!confirm(`ยืนยันแลก "${title}" ใช้ ${cost.toLocaleString()} แต้ม?`)) return;
+
+  try {
+    const result = await apiPost("redeemCoupon", {
+      userId: lineProfile.userId,
+      couponId,
+      cost,
+      desc: "แลก " + title,
+    });
+
+    if (result.success) {
+      memberData = result.member;
+      renderMemberCard(memberData);
+      showToast("✅ แลกคูปองสำเร็จ!");
+    } else {
+      showToast(result.message || "ไม่สามารถแลกได้");
+    }
+  } catch(e) {
+    showToast("เกิดข้อผิดพลาด");
+  }
+}
+
+/* ════════════════════════════════════════════════════════
+   HELPERS
+════════════════════════════════════════════════════════ */
+function getTier(points) {
+  return [...TIERS].reverse().find(t => points >= t.min) || TIERS[0];
+}
+function getNextTier(points) {
+  return TIERS.find(t => t.min > points) || null;
+}
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+function goToCard() { showScreen("screenCard"); }
+function hide(id) { document.getElementById(id).style.display = "none"; }
+function showErr(id) { document.getElementById(id).classList.add("show"); }
+function hideErr(id) { document.getElementById(id).classList.remove("show"); }
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), duration);
+}
+
+/* Tab navigation */
+const TABS = ["card","coupons","history","profile"];
+function showTab(tab) {
+  TABS.forEach(t => {
+    document.getElementById("navLabel" + cap(t)).classList.toggle("active", t === tab);
+    document.getElementById("navBar"   + cap(t)).classList.toggle("active", t === tab);
+  });
+  // Scroll to section
+  const sections = { card: 0, coupons: 1, history: 2 };
+  if (tab === "profile") showToast("โปรไฟล์: " + (memberData?.name || "—"));
+}
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/* ════════════════════════════════════════════════════════
+   START
+════════════════════════════════════════════════════════ */
+init();
+</script>
+</body>
+</html>
