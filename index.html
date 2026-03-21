@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Membership Card</title>
 
+<!-- LINE Seed Font -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=LINE+Seed+Sans+TH:wght@400;700&display=swap" rel="stylesheet">
+
 <!-- LINE LIFF SDK -->
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
@@ -34,7 +39,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; background: var(--bg); font-family: -apple-system, 'Noto Sans Thai', sans-serif; font-size: 15px; color: var(--text); }
+html, body { height: 100%; background: var(--bg); font-family: 'LINE Seed Sans TH', -apple-system, 'Noto Sans Thai', sans-serif; font-size: 15px; color: var(--text); }
 
 /* ─── LAYOUT ─── */
 #app { display: flex; flex-direction: column; min-height: 100vh; }
@@ -410,7 +415,7 @@ html, body { height: 100%; background: var(--bg); font-family: -apple-system, 'N
 /* ════════════════════════════════════════════════════════
    ⚙️  CONFIG — แก้ค่าทั้ง 3 บรรทัดด้านล่างก่อนใช้งาน
 ════════════════════════════════════════════════════════ */
-const LIFF_ID        = "YOUR_LIFF_ID";           // จาก LINE Developers Console
+const LIFF_ID        = "2009550456-lu7l3Q10";    // Ajanta Membership
 const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_URL";  // จาก Google Apps Script (deploy as web app)
 const SHEET_NAME      = "Members";               // ชื่อ Sheet tab
 
