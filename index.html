@@ -469,18 +469,23 @@ let memberData  = null;
 async function init() {
   try {
     await liff.init({ liffId: LIFF_ID });
+  } catch (err) {
+    console.error("LIFF init failed:", err);
+    document.getElementById("loadingScreen").style.display = "none";
+    showScreen("screenRegister");
+    showToast("กรุณาเปิดผ่าน LINE app");
+    return;
+  }
 
+  try {
     if (!liff.isLoggedIn()) {
-      liff.login();
+      liff.login({ redirectUri: location.href });
       return;
     }
 
     lineProfile = await liff.getProfile();
-
-    // Pre-fill name from LINE profile
     document.getElementById("inputName").value = lineProfile.displayName || "";
 
-    // Check if already member
     const member = await apiCall("getMember", { userId: lineProfile.userId });
 
     if (member && member.memberId) {
@@ -492,11 +497,11 @@ async function init() {
     }
 
   } catch (err) {
-    console.error(err);
+    console.error("Init error:", err);
     showToast("เกิดข้อผิดพลาด กรุณาลองใหม่");
     showScreen("screenRegister");
   } finally {
-    hide("loadingScreen");
+    document.getElementById("loadingScreen").style.display = "none";
   }
 }
 
