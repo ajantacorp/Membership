@@ -558,57 +558,232 @@ function switchHist(tab, btn) {
   if(tab==='rdm') { document.getElementById('hist-rdm-list').style.display='block'; }
 }
 
-// ── LIFF INIT ──────────────────────────────────────────────────────
+// ── CONFIG ─────────────────────────────────────────────────────────
+const API_URL = "https://script.google.com/macros/s/AKfycbxCGti-_2cs_G7LxUo9AZMIFzVqxboMpx1dAEHVEeO6l7D8_G0eJjm4NNtKhzVrQTel/exec";
+
+const TIER_CONFIG = {
+  Bronze:   { min: 0,    max: 1000, next: "Silver",   color: "#CD7F32" },
+  Silver:   { min: 1000, max: 3000, next: "Gold",     color: "#9E9E9E" },
+  Gold:     { min: 3000, max: 5000, next: "Platinum", color: "#FFD54F" },
+  Platinum: { min: 5000, max: 5000, next: null,       color: "#B39DDB" },
+};
+
+// ── UI HELPERS ──────────────────────────────────────────────────────
+function showLoading(show) {
+  let el = document.getElementById('loading-overlay');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'loading-overlay';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;';
+    el.innerHTML = '<div style="width:44px;height:44px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;"></div><div style="color:white;font-size:13px;font-weight:600;">กำลังโหลด...</div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>';
+    document.body.appendChild(el);
+  }
+  el.style.display = show ? 'flex' : 'none';
+}
+
+function showToast(msg, isError) {
+  let el = document.getElementById('toast-msg');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast-msg';
+    el.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;display:none;max-width:280px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,.2);color:white;';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.background = isError ? '#E53935' : '#2E8B34';
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+function showRegisterModal(profile) {
+  const old = document.getElementById('register-modal');
+  if (old) old.remove();
+  const modal = document.createElement('div');
+  modal.id = 'register-modal';
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9998;display:flex;align-items:flex-end;">
+      <div style="background:white;width:100%;border-radius:20px 20px 0 0;padding:24px 20px 40px;max-height:92vh;overflow-y:auto;box-sizing:border-box;">
+        <div style="width:40px;height:4px;background:#DDD;border-radius:2px;margin:0 auto 20px;"></div>
+        <div style="font-size:17px;font-weight:700;color:#1A1A1A;margin-bottom:4px;">สมัครสมาชิก Ajanta</div>
+        <div style="font-size:12px;color:#AAA;margin-bottom:18px;">กรอกข้อมูลเพื่อเริ่มสะสมแต้ม รับฟรี 50 แต้มทันที!</div>
+        <div style="display:flex;align-items:center;gap:12px;background:#F4F4F4;border-radius:12px;padding:12px 14px;margin-bottom:18px;">
+          <img src="${profile.pictureUrl||''}" onerror="this.style.display='none'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;background:#DDD;"/>
+          <div><div style="font-size:13px;font-weight:700;">${profile.displayName}</div><div style="font-size:11px;color:#AAA;">LINE Account</div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">ชื่อ-นามสกุล *</div>
+            <input id="reg-name" type="text" placeholder="กรอกชื่อจริง" value="${profile.displayName}"
+              style="width:100%;padding:12px 14px;border:1.5px solid #E0E0E0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">เบอร์โทร *</div>
+            <input id="reg-phone" type="tel" placeholder="0812345678"
+              style="width:100%;padding:12px 14px;border:1.5px solid #E0E0E0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">วันเกิด (ไม่บังคับ)</div>
+            <input id="reg-birthday" type="date"
+              style="width:100%;padding:12px 14px;border:1.5px solid #E0E0E0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;"/>
+          </div>
+        </div>
+        <button onclick="submitRegister('${profile.userId}')"
+          style="width:100%;margin-top:20px;padding:15px;background:#2E8B34;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;">
+          🎉 สมัครสมาชิก รับแต้ม 50 แต้มฟรี!
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function submitRegister(userId) {
+  const name     = document.getElementById('reg-name').value.trim();
+  const phone    = document.getElementById('reg-phone').value.trim();
+  const birthday = document.getElementById('reg-birthday').value;
+  if (!name)  { showToast('กรุณากรอกชื่อ', true); return; }
+  if (!phone || phone.length < 9) { showToast('กรุณากรอกเบอร์โทรให้ถูกต้อง', true); return; }
+  showLoading(true);
+  try {
+    const params = new URLSearchParams({ action:'register', userId, name, phone, birthday });
+    const res  = await fetch(API_URL + '?' + params);
+    const data = await res.json();
+    if (data.success) {
+      document.getElementById('register-modal').remove();
+      showToast('สมัครสมาชิกสำเร็จ! 🎉');
+      await loadMemberData(userId);
+    } else {
+      showToast(data.message || 'สมัครไม่สำเร็จ', true);
+    }
+  } catch(e) {
+    showToast('เกิดข้อผิดพลาด กรุณาลองใหม่', true);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ── UPDATE UI ───────────────────────────────────────────────────────
+function updateUI(data) {
+  const tier = data.tier || 'Bronze';
+  const tc   = TIER_CONFIG[tier] || TIER_CONFIG.Bronze;
+  const pts  = parseInt(data.points) || 0;
+
+  document.querySelectorAll('.hero-name').forEach(el => el.textContent = data.name || 'สมาชิก');
+  document.querySelectorAll('.hero-since').forEach(el => el.textContent = 'สมาชิกตั้งแต่ ' + (data.joinDate || ''));
+  document.querySelectorAll('.tier-pill').forEach(el => {
+    el.innerHTML = `<div class="t-dot" style="background:${tc.color}"></div>${tier} Member`;
+  });
+  document.querySelectorAll('.pts-val').forEach(el => el.textContent = pts.toLocaleString());
+
+  // Points header in redeem tab
+  document.querySelectorAll('.rdh-val').forEach(el => el.textContent = pts.toLocaleString() + ' แต้ม');
+  document.querySelectorAll('[style*="Gold Member"]').forEach(el => el.textContent = tier + ' Member');
+
+  // Progress
+  if (tc.next) {
+    const nc    = TIER_CONFIG[tc.next];
+    const range = nc.min - tc.min;
+    const prog  = Math.min(((pts - tc.min) / range) * 100, 100);
+    const need  = Math.max(nc.min - pts, 0);
+    document.querySelectorAll('.prog-fill').forEach(el => el.style.width = prog + '%');
+    document.querySelectorAll('.pts-next-val').forEach(el => el.textContent = need.toLocaleString() + ' แต้ม');
+    document.querySelectorAll('.pts-next-lbl').forEach(el => el.textContent = 'อีกกี่แต้มขึ้น ' + tc.next);
+    document.querySelectorAll('.prog-labels').forEach(el => {
+      el.innerHTML = `<span>${tier} ${tc.min.toLocaleString()}</span><span>${tc.next} ${nc.min.toLocaleString()}</span>`;
+    });
+  } else {
+    document.querySelectorAll('.prog-fill').forEach(el => el.style.width = '100%');
+    document.querySelectorAll('.pts-next-val').forEach(el => el.textContent = 'ระดับสูงสุด 🏆');
+    document.querySelectorAll('.pts-next-lbl').forEach(el => el.textContent = 'สถานะ');
+  }
+
+  if (data.history) renderHistory(data.history, pts);
+}
+
+function renderHistory(histStr, currentPts) {
+  if (!histStr) return;
+  const rows = histStr.split(';').filter(Boolean).reverse();
+  const ptsList = document.getElementById('hist-pts-list');
+  const rdmList = document.getElementById('hist-rdm-list');
+  if (!ptsList || !rdmList) return;
+
+  let ptsRows = '', rdmRows = '', earn = 0, used = 0;
+  rows.forEach(row => {
+    const [type, desc, pts, date] = row.split('|');
+    const p = parseInt(pts);
+    if (type === 'add') {
+      earn += p;
+      ptsRows += `<div class="hrow">
+        <div class="hdot" style="background:#2E8B34"></div>
+        <div class="htxt">${desc}</div>
+        <div class="hright"><div class="hpts hadd">+${p}</div><div class="hdate">${date}</div></div>
+      </div>`;
+    } else {
+      used += Math.abs(p);
+      rdmRows += `<div class="rdm-hist-card">
+        <div class="rdh-ico">🎁</div>
+        <div class="rdh-info">
+          <div class="rdh-name">${desc}</div>
+          <div class="rdh-pts">${p} แต้ม</div>
+          <div class="rdh-date">${date}</div>
+        </div>
+        <span class="rdh-status s-sent">สำเร็จ</span>
+      </div>`;
+    }
+  });
+
+  ptsList.innerHTML = `
+    <div class="hist-sum">
+      <div class="hs-c"><div class="hs-l">รับทั้งหมด</div><div class="hs-v gv">+${earn}</div></div>
+      <div class="hs-c"><div class="hs-l">ใช้ทั้งหมด</div><div class="hs-v rv">-${used}</div></div>
+      <div class="hs-c"><div class="hs-l">คงเหลือ</div><div class="hs-v nv">${currentPts.toLocaleString()}</div></div>
+    </div>
+    ${ptsRows ? `<div class="hcard" style="margin:10px 14px;">${ptsRows}</div>` : '<div style="text-align:center;padding:30px;color:#AAA;font-size:13px;">ยังไม่มีประวัติ</div>'}`;
+
+  rdmList.innerHTML = rdmRows || '<div style="text-align:center;padding:30px;color:#AAA;font-size:13px;">ยังไม่มีการแลกของรางวัล</div>';
+}
+
+// ── LOAD DATA ───────────────────────────────────────────────────────
+async function loadMemberData(userId) {
+  showLoading(true);
+  try {
+    const params = new URLSearchParams({ action:'getMember', userId });
+    const res  = await fetch(API_URL + '?' + params);
+    const data = await res.json();
+    if (data.success) {
+      updateUI(data);
+    } else {
+      showRegisterModal(window._lineProfile);
+    }
+  } catch(e) {
+    showToast('ไม่สามารถโหลดข้อมูลได้', true);
+    console.error(e);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ── LIFF INIT ───────────────────────────────────────────────────────
 async function initLiff() {
   try {
     await liff.init({ liffId: "2009550456-lu7l3Q10" });
-
     if (!liff.isLoggedIn()) {
       liff.login({ redirectUri: window.location.href });
       return;
     }
-
     const profile = await liff.getProfile();
+    window._lineProfile = profile;
 
-    // Inject LINE display name
-    document.querySelectorAll('.hero-name').forEach(el => el.textContent = profile.displayName);
-
-    // Replace avatar SVG with real LINE profile photo
+    // Set avatar
     document.querySelectorAll('.hero-avatar').forEach(el => {
       if (profile.pictureUrl) {
         el.innerHTML = '<img src="' + profile.pictureUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"/>';
       }
     });
 
-    // Store userId for backend calls
-    window.lineUserId = profile.userId;
-    console.log('LIFF ready, userId:', profile.userId);
-
-    // Uncomment to load real member data:
-    // await loadMemberData(profile.userId);
-
-  } catch (err) {
-    console.error('LIFF init failed:', err.message || err);
-  }
-}
-
-// Optional: fetch real points from your API
-async function loadMemberData(userId) {
-  try {
-    const res = await fetch('https://your-api.com/member/' + userId);
-    const data = await res.json();
-
-    const ptsVal = document.querySelector('.pts-val');
-    const ptsNext = document.querySelector('.pts-next-val');
-    const progFill = document.querySelector('.prog-fill');
-    const heroSince = document.querySelector('.hero-since');
-
-    if (ptsVal) ptsVal.textContent = data.points.toLocaleString();
-    if (ptsNext) ptsNext.textContent = (5000 - data.points).toLocaleString() + ' แต้ม';
-    if (progFill) progFill.style.width = Math.min(((data.points - 3000) / 2000 * 100), 100) + '%';
-    if (heroSince) heroSince.textContent = 'สมาชิกตั้งแต่ ' + data.memberSince;
-  } catch (err) {
-    console.error('loadMemberData failed:', err);
+    await loadMemberData(profile.userId);
+  } catch(err) {
+    console.error('LIFF init failed:', err);
+    showToast('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่สามารถเชื่อมต่อได้'), true);
   }
 }
 
